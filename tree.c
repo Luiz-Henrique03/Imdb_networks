@@ -1,50 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define MAX_LINE_LENGTH 1000
-
-struct Artist {
-    int ID;
-    char* nome;
-    char** movies;
-    int numMovies;
-};
-
-typedef struct Artist Artist;
-
-struct Graph {
+#include "Arvore_RBT.h"
+#include "Arvore_artistas.h"
+typedef struct {
+    int* adjMatrix;
     int numVertices;
-    int** adjMatrix;
-};
-
-typedef struct Graph Graph;
-
-void initializeGraph(Graph* graph, int numVertices) {
-    graph->numVertices = numVertices;
-    graph->adjMatrix = (int**)malloc(numVertices * sizeof(int*));
-    for (int i = 0; i < numVertices; i++) {
-        graph->adjMatrix[i] = (int*)malloc(numVertices * sizeof(int));
-        memset(graph->adjMatrix[i], 0, numVertices * sizeof(int));
-    }
-}
-
-void addEdge(Graph* graph, int vertex1, int vertex2) {
-    graph->adjMatrix[vertex1][vertex2] = 1;
-    graph->adjMatrix[vertex2][vertex1] = 1;
-}
-
-void printGraph(Graph* graph, Artist* artists, int numArtists) {
-    for (int i = 0; i < numArtists; i++) {
-        printf("Artista: %s\nFilmes em comum com outros artistas:\n", artists[i].nome);
-        for (int j = 0; j < numArtists; j++) {
-            if (graph->adjMatrix[i][j] == 1 && i != j) {
-                printf("- %s\n", artists[j].nome);
-            }
-        }
-        printf("\n");
-    }
-}
+} Graph;
 
 void readArtistFile(Artist** artists, int* numArtists, char* path) {
     FILE* arquivo;
@@ -64,7 +23,7 @@ void readArtistFile(Artist** artists, int* numArtists, char* path) {
     while (fgets(line, MAX_LINE_LENGTH, arquivo) != NULL && cont--) {
         if (skipHeader) {
             skipHeader = 0;
-            continue; 
+            continue;
         }
 
         lineLength = strlen(line);
@@ -77,8 +36,8 @@ void readArtistFile(Artist** artists, int* numArtists, char* path) {
 
         Artist* currentArtist = &((*artists)[*numArtists]);
 
-        currentArtist->nome = malloc((lineLength + 1) * sizeof(char));
-        if (currentArtist->nome == NULL) {
+        currentArtist->name = malloc((lineLength + 1) * sizeof(char));
+        if (currentArtist->name == NULL) {
             printf("Erro ao alocar memória.\n");
             return;
         }
@@ -86,15 +45,12 @@ void readArtistFile(Artist** artists, int* numArtists, char* path) {
         currentArtist->numMovies = 0;
         currentArtist->movies = NULL;
 
-        char* token = strtok(line, "\t"); 
+        char* token = strtok(line, "\t");
 
         int fieldIndex = 0;
         while (token != NULL) {
             if (fieldIndex == 0) {
                 sscanf(token, "nm%*06d", &(currentArtist->ID));
-            }
-            else if (fieldIndex == 1) {
-                strcpy(currentArtist->nome, token);
             }
             else if (fieldIndex == 5) {
                 char* movieToken = strtok(token, ",");
@@ -128,57 +84,241 @@ void readArtistFile(Artist** artists, int* numArtists, char* path) {
     fclose(arquivo);
 }
 
-void createGraph(Graph* graph, Artist* artists, int numArtists) {
-    initializeGraph(graph, numArtists);
+void readMovieFile(Movie** movies, int* numMovies, Artist* artists, int numArtists, char* path) {
+    FILE* arquivo;
+    char line[MAX_LINE_LENGTH];
+    int lineLength;
+    int skipHeader = 1;
 
-    for (int i = 0; i < numArtists; i++) {
-        for (int j = i + 1; j < numArtists; j++) {
-            Artist artist1 = artists[i];
-            Artist artist2 = artists[j];
+    arquivo = fopen(path, "r");
 
-            for (int k = 0; k < artist1.numMovies; k++) {
-                for (int l = 0; l < artist2.numMovies; l++) {
-                    if (strcmp(artist1.movies[k], artist2.movies[l]) == 0) {
-                        addEdge(graph, i, j);
+    if (arquivo == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    int cont = 1000;
+
+    while (fgets(line, MAX_LINE_LENGTH, arquivo) != NULL && cont--) {
+        if (skipHeader) {
+            skipHeader = 0;
+            continue;
+        }
+
+        lineLength = strlen(line);
+
+        *movies = realloc(*movies, (*numMovies + 1) * sizeof(Movie));
+        if (*movies == NULL) {
+            printf("Erro ao alocar memória.\n");
+            return;
+        }
+
+        Movie* currentMovie = &((*movies)[*numMovies]);
+
+        currentMovie->titleId = malloc((lineLength + 1) * sizeof(char));
+        currentMovie->titleType = malloc((lineLength + 1) * sizeof(char));
+        currentMovie->primaryTitle = malloc((lineLength + 1) * sizeof(char));
+        currentMovie->originalTitle = malloc((lineLength + 1) * sizeof(char));
+        currentMovie->genres = malloc((lineLength + 1) * sizeof(char));
+
+        if (currentMovie->titleId == NULL || currentMovie->titleType == NULL ||
+            currentMovie->primaryTitle == NULL || currentMovie->originalTitle == NULL ||
+            currentMovie->genres == NULL) {
+            printf("Erro ao alocar memória.\n");
+            return;
+        }
+
+        currentMovie->artists = malloc(numArtists * sizeof(int));
+        if (currentMovie->artists == NULL) {
+            printf("Erro ao alocar memória.\n");
+            return;
+        }
+
+        char* token = strtok(line, "\t");
+
+        int fieldIndex = 0;
+        while (token != NULL) {
+            switch (fieldIndex) {
+            case 0:
+                strcpy(currentMovie->titleId, token);
+                break;
+            case 1:
+                strcpy(currentMovie->titleType, token);
+                break;
+            case 2:
+                strcpy(currentMovie->primaryTitle, token);
+                break;
+            case 3:
+                strcpy(currentMovie->originalTitle, token);
+                break;
+            case 4:
+                sscanf(token, "%d", &(currentMovie->isAdult));
+                break;
+            case 5:
+                sscanf(token, "%d", &(currentMovie->startYear));
+                break;
+            case 6:
+                sscanf(token, "%d", &(currentMovie->endYear));
+                break;
+            case 7:
+                sscanf(token, "%d", &(currentMovie->runtimeMinutes));
+                break;
+            case 8:
+                strcpy(currentMovie->genres, token);
+                break;
+            case 9: // Modified case for artist IDs
+               // Tokenize artist IDs
+                char* artistToken = strtok(token, ",");
+                while (artistToken != NULL) {
+                    // Convert artist ID to integer
+                    int artistID = atoi(artistToken);
+
+                    // Find the artist with the corresponding ID
+                    for (int i = 0; i < numArtists; i++) {
+                        if (artists[i].ID == artistID) {
+                            // Add the movie index to the artist's movie list
+                            artists[i].movies = realloc(artists[i].movies, (artists[i].numMovies + 1) * sizeof(char*));
+                            artists[i].movies[artists[i].numMovies] = currentMovie->titleId;
+                            artists[i].numMovies++;
+                            break;
+                        }
+                    }
+
+                    artistToken = strtok(NULL, ",");
+                }
+                break;
+            default:
+                int artistID;
+                sscanf(token, "nm%*06d", &artistID);
+
+                for (int i = 0; i < numArtists; i++) {
+                    if (artists[i].ID == artistID) {
+                        currentMovie->artists[currentMovie->numArtists] = i;
+                        currentMovie->numArtists++;
                         break;
                     }
                 }
+                break;
+            }
+
+            fieldIndex++;
+            token = strtok(NULL, "\t");
+        }
+
+        (*numMovies)++;
+    }
+
+    fclose(arquivo);
+}
+
+void addEdge(Graph* graph, Movie* movies, int movieIndex1, int movieIndex2) {
+    if (graph == NULL || movieIndex1 < 0 || movieIndex2 < 0 ||
+        movieIndex1 >= graph->numVertices || movieIndex2 >= graph->numVertices) {
+        return;
+    }
+
+    graph->adjMatrix[movieIndex1 * graph->numVertices + movieIndex2] = 1;
+    graph->adjMatrix[movieIndex2 * graph->numVertices + movieIndex1] = 1;
+}
+
+Graph createGraph(Movie* movies, int numMovies) {
+    Graph graph;
+    graph.numVertices = numMovies;
+    graph.adjMatrix = calloc(numMovies * numMovies, sizeof(int));
+    if (graph.adjMatrix == NULL) {
+        printf("Erro ao alocar memória.\n");
+        return graph;
+    }
+
+    for (int i = 0; i < numMovies; i++) {
+        for (int j = i + 1; j < numMovies; j++) {
+            Movie movie1 = movies[i];
+            Movie movie2 = movies[j];
+
+            if (movie1.startYear == movie2.startYear && strcmp(movie1.genres, movie2.genres) == 0) {
+                addEdge(&graph, movies, i, j);
             }
         }
     }
+
+    return graph;
 }
 
-void freeMemory(Artist* artists, int numArtists, Graph* graph) {
-    for (int i = 0; i < numArtists; i++) {
-        Artist artist = artists[i];
-
-        free(artist.nome);
-
-        for (int j = 0; j < artist.numMovies; j++) {
-            free(artist.movies[j]);
-        }
-
-        free(artist.movies);
+void printGraph(Graph* graph, Movie* movies) {
+    if (graph == NULL || movies == NULL) {
+        return;
     }
+
+    FILE* file = fopen("graph.dot", "w");
+    if (file == NULL) {
+        printf("Erro ao criar o arquivo graph.dot\n");
+        return;
+    }
+
+    fprintf(file, "graph G {\n");
 
     for (int i = 0; i < graph->numVertices; i++) {
-        free(graph->adjMatrix[i]);
+        Movie movie = movies[i];
+
+        fprintf(file, "\t%d [label=\"%s (%d)\"];\n", i, movie.originalTitle, movie.startYear);
+
+        for (int j = 0; j < graph->numVertices; j++) {
+            if (graph->adjMatrix[i * graph->numVertices + j] == 1) {
+                Movie relatedMovie = movies[j];
+                fprintf(file, "\t%d -- %d;\n", i, j);
+            }
+        }
     }
 
-    free(graph->adjMatrix);
+    fprintf(file, "}\n");
+    fclose(file);
 
-    free(artists);
+    printf("O arquivo graph.dot foi gerado com sucesso.\n");
 }
 
 int main() {
     Artist* artists = NULL;
     int numArtists = 0;
-    Graph graph;
+    Movie* movies = NULL;
+    RBTree* tree = createRBTree();
+    int numMovies = 0;
 
     readArtistFile(&artists, &numArtists, "artists.tsv");
-    createGraph(&graph, artists, numArtists);
-    printGraph(&graph, artists, numArtists);
-    freeMemory(artists, numArtists, &graph);
+    readMovieFile(&movies, &numMovies, artists, numArtists, "movies.tsv");
+    
+    for (int i = 0; i < numMovies; i++) {
+        Movie movie = movies[i];
+        insert_movie(tree, movie.titleId, movies);
+    }
+
+
+
+    Graph graph = createGraph(movies, numMovies);
+
+    printGraph(&graph, movies);
+
+    // Liberar memória alocada
+    for (int i = 0; i < numArtists; i++) {
+        free(artists[i].name);
+        for (int j = 0; j < artists[i].numMovies; j++) {
+            free(artists[i].movies[j]);
+        }
+        free(artists[i].movies);
+    }
+    free(artists);
+
+    for (int i = 0; i < numMovies; i++) {
+        Movie movie = movies[i];
+        free(movie.titleId);
+        free(movie.titleType);
+        free(movie.primaryTitle);
+        free(movie.originalTitle);
+        free(movie.genres);
+        free(movie.artists);
+    }
+    free(movies);
+
+    free(graph.adjMatrix);
 
     return 0;
 }
