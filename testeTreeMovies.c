@@ -38,19 +38,19 @@ int main() {
     /*
    Artist* artist1 = (Artist*)malloc(sizeof(Artist));
     artist1->ID = 1;
-    artist1->name = strdup("Charles-Émile Reynaud");
+    artist1->name = strdup("Charles-Ã‰mile Reynaud");
     artist1->movies = (char**)malloc(sizeof(char*));
     artist1->movies[0] = strdup("tt0000002");
     artist1->numMovies = 1;
    
-    insert_artist(tree, "Charles-Émile Reynaud", artist1);
+    insert_artist(tree, "Charles-Ã‰mile Reynaud", artist1);
      */
     Movie* foundMovie = search_movie(tree, "tt0000001");
     if (foundMovie != NULL) {
         printf("Found Movie: %s\n", foundMovie->primaryTitle);
     }
     /*
-    Artist* foundArtist = search_artist(tree, "Charles-Émile Reynaud");
+    Artist* foundArtist = search_artist(tree, "Charles-Ã‰mile Reynaud");
     if (foundArtist != NULL) {
         printf("Found Artist: %s\n", foundArtist->name);
         printf("Movies by Artist:\n");
