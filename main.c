@@ -1,5 +1,6 @@
 #include "Arvore_RBT.h"
-#include "Arvore_artistas.h"
+
+
 typedef struct {
     int* adjMatrix;
     int numVertices;
@@ -30,7 +31,7 @@ void readArtistFile(Artist** artists, int* numArtists, char* path) {
 
         *artists = realloc(*artists, (*numArtists + 1) * sizeof(Artist));
         if (*artists == NULL) {
-            printf("Erro ao alocar mem贸ria.\n");
+            printf("Erro ao alocar mem髍ia.\n");
             return;
         }
 
@@ -38,7 +39,7 @@ void readArtistFile(Artist** artists, int* numArtists, char* path) {
 
         currentArtist->name = malloc((lineLength + 1) * sizeof(char));
         if (currentArtist->name == NULL) {
-            printf("Erro ao alocar mem贸ria.\n");
+            printf("Erro ao alocar mem髍ia.\n");
             return;
         }
 
@@ -57,13 +58,13 @@ void readArtistFile(Artist** artists, int* numArtists, char* path) {
                 while (movieToken != NULL) {
                     currentArtist->movies = realloc(currentArtist->movies, (currentArtist->numMovies + 1) * sizeof(char*));
                     if (currentArtist->movies == NULL) {
-                        printf("Erro ao alocar mem贸ria.\n");
+                        printf("Erro ao alocar mem髍ia.\n");
                         return;
                     }
 
                     currentArtist->movies[currentArtist->numMovies] = malloc(strlen(movieToken) * sizeof(char));
                     if (currentArtist->movies[currentArtist->numMovies] == NULL) {
-                        printf("Erro ao alocar mem贸ria.\n");
+                        printf("Erro ao alocar mem髍ia.\n");
                         return;
                     }
 
@@ -109,7 +110,7 @@ void readMovieFile(Movie** movies, int* numMovies, Artist* artists, int numArtis
 
         *movies = realloc(*movies, (*numMovies + 1) * sizeof(Movie));
         if (*movies == NULL) {
-            printf("Erro ao alocar mem贸ria.\n");
+            printf("Erro ao alocar mem髍ia.\n");
             return;
         }
 
@@ -124,13 +125,13 @@ void readMovieFile(Movie** movies, int* numMovies, Artist* artists, int numArtis
         if (currentMovie->titleId == NULL || currentMovie->titleType == NULL ||
             currentMovie->primaryTitle == NULL || currentMovie->originalTitle == NULL ||
             currentMovie->genres == NULL) {
-            printf("Erro ao alocar mem贸ria.\n");
+            printf("Erro ao alocar mem髍ia.\n");
             return;
         }
 
         currentMovie->artists = malloc(numArtists * sizeof(int));
         if (currentMovie->artists == NULL) {
-            printf("Erro ao alocar mem贸ria.\n");
+            printf("Erro ao alocar mem髍ia.\n");
             return;
         }
 
@@ -226,7 +227,7 @@ Graph createGraph(Movie* movies, int numMovies) {
     graph.numVertices = numMovies;
     graph.adjMatrix = calloc(numMovies * numMovies, sizeof(int));
     if (graph.adjMatrix == NULL) {
-        printf("Erro ao alocar mem贸ria.\n");
+        printf("Erro ao alocar mem髍ia.\n");
         return graph;
     }
 
@@ -285,7 +286,7 @@ int main() {
 
     readArtistFile(&artists, &numArtists, "artists.tsv");
     readMovieFile(&movies, &numMovies, artists, numArtists, "movies.tsv");
-    
+
     for (int i = 0; i < numMovies; i++) {
         Movie movie = movies[i];
         insert_movie(tree, movie.titleId, movies);
@@ -297,7 +298,7 @@ int main() {
 
     printGraph(&graph, movies);
 
-    // Liberar mem贸ria alocada
+    // Liberar mem髍ia alocada
     for (int i = 0; i < numArtists; i++) {
         free(artists[i].name);
         for (int j = 0; j < artists[i].numMovies; j++) {
